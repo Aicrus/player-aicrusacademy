@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Player</title>
+    <script src="playerjs.js" type="text/javascript"></script>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        #playerjs {
+            width: 100%;
+            height: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="playerjs"></div>
+    <script type="text/javascript">
+        // Função para pegar parâmetros da URL
+        function getUrlParams() {
+            const params = {};
+            const queryString = window.location.search.substring(1);
+            const pairs = queryString.split('&');
+            
+            for(const pair of pairs) {
+                const [key, value] = pair.split('=');
+                if (key && value) {
+                    params[key] = decodeURIComponent(value);
+                }
+            }
+            return params;
+        }
+
+        // Configuração do player
+        const params = getUrlParams();
+        const playerConfig = {
+            id: "playerjs",
+            file: params.file || "https://vz-ac81c4ec-657.b-cdn.net/7d9a1fdb-9027-4672-b89b-b3d5e792cfec/playlist.m3u8"
+        };
+        
+        new Playerjs(playerConfig);
+    </script>
+</body>
+</html>
