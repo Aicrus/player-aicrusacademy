@@ -4,8 +4,11 @@ import { VideoOverlay } from './VideoOverlay';
 import { VideoSettings } from './VideoSettings';
 import { useVideoPlayer } from './useVideoPlayer';
 
-export function VideoPlayer() {
-  const videoId = '74efece0-263e-4307-ba14-85df445e55d5';
+interface VideoPlayerProps {
+  videoId: string;
+}
+
+export function VideoPlayer({ videoId }: VideoPlayerProps) {
   const player = useVideoPlayer(videoId);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showContextMenu, setShowContextMenu] = useState(false);
