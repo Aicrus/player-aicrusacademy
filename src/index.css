@@ -1,0 +1,231 @@
+/* postcss-ignore */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #1effb2;
+}
+
+.video-progress-bar {
+  background: rgba(255, 255, 255, 0.3);
+  height: 4px;
+  border-radius: 2px;
+  cursor: pointer;
+  position: relative;
+}
+
+.video-progress-bar:hover {
+  height: 6px;
+}
+
+.video-progress-bar-fill {
+  background: var(--color-primary);
+  height: 100%;
+  border-radius: 2px;
+  position: relative;
+  transition: height 0.2s;
+}
+
+.video-progress-handle {
+  position: absolute;
+  right: -6px;
+  top: 50%;
+  transform: translateY(-50%) scale(0);
+  width: 12px;
+  height: 12px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  cursor: grab;
+  z-index: 10;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+}
+
+.video-progress-handle:active {
+  cursor: grabbing;
+  transform: translateY(-50%) scale(1.2) !important;
+  box-shadow: 0 0 8px rgba(30, 255, 178, 0.4);
+}
+
+.video-progress-bar:hover .video-progress-handle,
+.group-hover/volume .video-progress-handle {
+  transform: translateY(-50%) scale(1);
+}
+
+.video-progress-handle:hover {
+  transform: translateY(-50%) scale(1.2) !important;
+  box-shadow: 0 0 8px rgba(30, 255, 178, 0.4);
+}
+
+/* Fullscreen styles */
+.video-container:fullscreen {
+  width: 100vw !important;
+  height: 100vh !important;
+  padding: 0;
+  margin: 0;
+  background: black;
+}
+
+.video-container:fullscreen video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* For webkit browsers */
+.video-container:-webkit-full-screen {
+  width: 100vw !important;
+  height: 100vh !important;
+  padding: 0;
+  margin: 0;
+  background: black;
+}
+
+.video-container:-webkit-full-screen video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* For Firefox */
+.video-container:-moz-full-screen {
+  width: 100vw !important;
+  height: 100vh !important;
+  padding: 0;
+  margin: 0;
+  background: black;
+}
+
+.video-container:-moz-full-screen video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Ensure controls stay visible in fullscreen */
+.video-container:fullscreen .video-controls,
+.video-container:-webkit-full-screen .video-controls,
+.video-container:-moz-full-screen .video-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  opacity: 0;
+}
+
+.video-container:fullscreen:hover .video-controls,
+.video-container:-webkit-full-screen:hover .video-controls,
+.video-container:-moz-full-screen:hover .video-controls {
+  opacity: 1;
+}
+
+/* Prevenir seleção de texto no player */
+.video-container {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Estilo para o menu de contexto */
+.context-menu {
+  animation: fadeIn 0.15s cubic-bezier(0.21, 1.02, 0.73, 1);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(2px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.video-preview {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: all 0.2s ease-out;
+}
+
+.video-preview.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.video-preview img {
+  width: 160px;
+  height: 90px;
+  object-fit: cover;
+}
+
+/* Estilo para os ícones dos controles */
+.video-controls button {
+  transform-origin: center;
+  backface-visibility: hidden;
+}
+
+.video-controls button:hover svg {
+  filter: drop-shadow(0 0 4px rgba(30, 255, 178, 0.4));
+}
+
+/* Estilo específico para o controle de volume */
+.group-hover\/volume .video-progress-bar {
+  height: 4px;
+}
+
+.group-hover\/volume .video-progress-bar:hover {
+  height: 4px;
+}
+
+/* Remover os estilos antigos do handle do volume */
+.group-hover\/volume .video-progress-handle {
+  display: none;
+}
+
+/* Estilo para o badge de qualidade */
+.settings-button {
+  position: relative;
+}
+
+.settings-button > div {
+  animation: scaleIn 0.2s ease-out;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Estilo das legendas */
+::cue {
+  background-color: rgba(30, 255, 178, 0.2);
+  color: #ffffff;
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 24px;
+  line-height: 1.5;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
+  padding: 4px 8px;
+  white-space: pre-line;
+  font-weight: 500;
+}
+
+video::cue {
+  background-color: rgba(30, 255, 178, 0.2);
+  color: #ffffff;
+}
+
+video::-webkit-media-text-track-display {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 24px;
+  line-height: 1.5;
+  font-weight: 500;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
+}
