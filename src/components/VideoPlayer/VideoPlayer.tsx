@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { VideoControls } from './VideoControls';
 import { VideoOverlay } from './VideoOverlay';
 import { VideoSettings } from './VideoSettings';
@@ -14,6 +14,19 @@ export function VideoPlayer({ videoId }: VideoPlayerProps) {
   const [showContextMenu, setShowContextMenu] = useState(false);
   const [contextMenuPosition, setContextMenuPosition] = useState({ x: 0, y: 0 });
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Carregar legenda automaticamente
+    if (player.videoRef.current) {
+      const track = document.createElement('track');
+      track.kind = 'subtitles';
+      track.label = 'Português';
+      track.srclang = 'pt';
+      track.src = `${window.location.origin}/player-aicrusacademy/subtitles/${videoId}/pt.vtt`;
+      track.default = true;
+      player.videoRef.current.appendChild(track);
+    }
+  }, [videoId, player.videoRef]);
 
   const handleMouseLeave = () => {
     if (isSettingsOpen) {
