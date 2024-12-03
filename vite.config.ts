@@ -8,4 +8,18 @@ export default defineConfig({
     exclude: ['lucide-react'],
   },
   base: '/player-aicrusacademy/',
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false,
+    minify: 'terser',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          player: ['hls.js']
+        }
+      }
+    }
+  }
 });
