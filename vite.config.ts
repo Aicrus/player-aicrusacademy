@@ -5,14 +5,7 @@ export default defineConfig({
   plugins: [react()],
   base: '/player-aicrusacademy/',
   build: {
-    outDir: 'dist',
-    assetsDir: 'assets',
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
-        }
-      }
-    }
+    outDir: 'docs',
+    emptyOutDir: true
   }
 });
