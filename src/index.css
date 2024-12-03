@@ -1,0 +1,199 @@
+/* postcss-ignore */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #1effb2;
+}
+
+.video-progress-bar {
+  background: rgba(255, 255, 255, 0.15);
+  height: 3px;
+  border-radius: 3px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.video-progress-bar:hover {
+  height: 5px;
+}
+
+.video-progress-buffer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  transition: width 0.2s ease;
+}
+
+.video-progress-bar-fill {
+  background: var(--color-primary);
+  height: 100%;
+  border-radius: 3px;
+  position: relative;
+  transition: all 0.2s ease;
+  z-index: 2;
+}
+
+.video-progress-handle {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 13px;
+  height: 13px;
+  background: white;
+  border-radius: 50%;
+  transition: opacity 0.2s ease;
+  cursor: grab;
+  z-index: 10;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.video-progress-bar:hover .video-progress-handle {
+  opacity: 0;
+}
+
+.video-progress-bar.dragging .video-progress-handle {
+  opacity: 1;
+}
+
+.video-progress-handle:active {
+  cursor: grabbing;
+  opacity: 1;
+  box-shadow: 0 0 8px rgba(30, 255, 178, 0.4);
+}
+
+.video-preview {
+  opacity: 0;
+  transform: translateY(4px);
+  transition: all 0.15s ease-out;
+  pointer-events: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.video-preview::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 8px solid rgba(0, 0, 0, 0.9);
+}
+
+.video-preview .preview-time {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 16px 8px 8px;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.9));
+  color: white;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.video-preview img {
+  width: 160px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.video-preview.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.video-progress-container {
+  margin: -16px 0;
+  padding: 16px 0;
+  position: relative;
+  z-index: 1;
+  margin-bottom: 4px;
+}
+
+.video-progress-container:hover .video-progress-bar {
+  height: 6px;
+  transform: scaleY(1.1);
+  transition: all 0.2s ease;
+}
+
+/* Ajustes responsivos para a barra de progresso */
+@media (max-width: 640px) {
+  .video-progress-container {
+    margin: -12px 0;
+    padding: 12px 0;
+  }
+
+  .video-progress-bar {
+    height: 3px;
+  }
+
+  .video-progress-handle {
+    width: 10px;
+    height: 10px;
+  }
+
+  .video-preview {
+    width: 120px !important;
+    height: 68px !important;
+    margin-bottom: 6px;
+    transition: all 0.1s ease-out;
+  }
+}
+
+@media (max-width: 480px) {
+  .video-progress-container {
+    margin: -8px 0;
+    padding: 8px 0;
+  }
+
+  .video-preview {
+    width: 100px !important;
+    height: 56px !important;
+    margin-bottom: 4px;
+  }
+}
+
+/* Seu CSS customizado aqui */
+
+@keyframes custom-ping {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.2;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(0.8);
+    opacity: 0.2;
+  }
+}
+
+@keyframes custom-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-ping {
+  animation: custom-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.animate-spin {
+  animation: custom-spin 1s linear infinite;
+}
