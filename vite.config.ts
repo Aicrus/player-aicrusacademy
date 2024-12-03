@@ -6,6 +6,11 @@ export default defineConfig({
   base: '/player-aicrusacademy/',
   build: {
     outDir: 'dist',
-    sourcemap: false
+    sourcemap: false,
+    rollupOptions: {
+      input: {
+        main: './index.html',
+      },
+    },
   }
 });
