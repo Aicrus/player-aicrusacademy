@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import Hls from 'hls.js';
 
 interface QualityLevel {
@@ -26,27 +26,17 @@ export function useVideoPlayer(videoId: string) {
     const savedQuality = localStorage.getItem(`videoQuality_${videoId}`);
     return savedQuality || 'auto';
   });
-  const [availableQualities, setAvailableQualities] = useState<QualityLevel[]>([]);
+  const [availableQualities] = useState<QualityLevel[]>([]);
   const [playbackSpeed, setPlaybackSpeed] = useState(() => {
     const savedSpeed = localStorage.getItem(`videoSpeed_${videoId}`);
     return savedSpeed ? parseFloat(savedSpeed) : 1;
   });
-  const [subtitles, setSubtitles] = useState<Array<{ id: string; label: string }>>([
+  const [subtitles] = useState<Array<{ id: string; label: string }>>([
     { id: 'off', label: 'Desativado' }
   ]);
   const [currentSubtitle, setCurrentSubtitle] = useState('off');
   const [isCasting, setIsCasting] = useState(false);
   const [castInitialized, setCastInitialized] = useState(false);
-
-  const getLanguageName = (code: string) => {
-    const languages: Record<string, string> = {
-      'pt': 'Português',
-      'en': 'English',
-      'es': 'Español',
-      'und': 'Desconhecido',
-    };
-    return languages[code] || code.toUpperCase();
-  };
 
   const togglePlay = () => {
     if (videoRef.current) {
@@ -207,172 +197,38 @@ export function useVideoPlayer(videoId: string) {
     localStorage.setItem(`videoSubtitle_${videoId}`, subtitleId);
   };
 
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
+  const initializeCastApi = useCallback(() => {
+    try {
+      const sessionRequest = new window.chrome.cast.SessionRequest(
+        window.chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID
+      );
 
-    if (Hls.isSupported()) {
-      const videoUrl = `https://vz-5534a473-9fc.b-cdn.net/${videoId}/playlist.m3u8`;
-      const baseUrl = 'https://aicrus.github.io/player-aicrusacademy';
-      
-      // Configurar legendas disponíveis
-      const subtitleTracks = [
-        {
-          label: 'Português',
-          srclang: 'pt',
-          url: `${baseUrl}/subtitles/${videoId}/pt.vtt`
+      const apiConfig = new window.chrome.cast.ApiConfig(
+        sessionRequest,
+        (session: ChromeCastSession) => {
+          console.log('Sessão existente encontrada');
+          castSessionRef.current = session;
+          setIsCasting(true);
         },
-        {
-          label: 'English',
-          srclang: 'en',
-          url: `${baseUrl}/subtitles/${videoId}/en.vtt`
+        (availability: string) => {
+          console.log('Receiver found?', availability === 'available');
         },
-        {
-          label: 'Español',
-          srclang: 'es',
-          url: `${baseUrl}/subtitles/${videoId}/es.vtt`
-        }
-      ];
-      
-      const hls = new Hls({
-        debug: true,
-        enableWebVTT: true,
-        enableCEA708Captions: true,
-        autoStartLoad: true,
-        xhrSetup: (xhr, url) => {
-          // Permitir CORS para as legendas
-          xhr.withCredentials = false;
-          console.log('XHR Request:', url);
-        }
-      });
+        'ORIGIN_SCOPED'
+      );
 
-      hlsRef.current = hls;
-      
-      // Testar URLs das legendas com diferentes variações
-      subtitleTracks.forEach(track => {
-        const urlVariations = [
-          track.url,
-          `${baseUrl}/caption/${track.srclang}.vtt`,
-          `${baseUrl}/captions/${track.srclang}.vtt`,
-          `${baseUrl}/subtitles/${track.srclang}-auto.vtt`,
-          `${baseUrl}/caption/${track.srclang}-auto.vtt`
-        ];
-
-        console.log(`Tentando carregar legenda ${track.label}:`, urlVariations);
-
-        // Tentar cada variação da URL
-        Promise.any(
-          urlVariations.map(url =>
-            fetch(url)
-              .then(response => {
-                if (!response.ok) {
-                  throw new Error(`HTTP ${response.status} para ${url}`);
-                }
-                return { url, response };
-              })
-          )
-        )
-          .then(({ url, response }) => {
-            console.log(`Legenda ${track.label} encontrada em:`, url);
-            return response.text();
-          })
-          .then(text => {
-            console.log(`Conteúdo da legenda ${track.label}:`, {
-              primeirasLinhas: text.split('\n').slice(0, 10)
-            });
-          })
-          .catch(error => {
-            console.error(`Nenhuma URL funcionou para ${track.label}:`, error);
-          });
-      });
-
-      // Adicionar as legendas ao vídeo
-      subtitleTracks.forEach((track) => {
-        const trackElement = document.createElement('track');
-        trackElement.kind = 'subtitles';
-        trackElement.label = track.label;
-        trackElement.srclang = track.srclang;
-        trackElement.src = track.url;
-
-        // Monitorar eventos da legenda
-        trackElement.addEventListener('load', () => {
-          console.log(`Track ${track.label} carregado:`, {
-            url: track.url,
-            readyState: trackElement.readyState
-          });
-        });
-
-        trackElement.addEventListener('error', (e: Event) => {
-          const error = (e.target as HTMLTrackElement).error;
-          console.error(`Erro no track ${track.label}:`, {
-            url: track.url,
-            error
-          });
-        });
-
-        video.appendChild(trackElement);
-      });
-
-      // Monitorar carregamento de legendas
-      video.textTracks.addEventListener('addtrack', (event) => {
-        const track = event.track;
-        if (track) {
-          console.log('Track adicionado:', {
-            label: track.label,
-            language: track.language,
-            kind: track.kind,
-            mode: track.mode,
-            cues: track.cues?.length
-          });
-        }
-      });
-
-      // Monitorar mudanças nas legendas
-      video.textTracks.addEventListener('change', () => {
-        const tracks = Array.from(video.textTracks);
-        console.log('Estado atual das legendas:', tracks.map(track => ({
-          label: track.label,
-          language: track.language,
-          kind: track.kind,
-          mode: track.mode
-        })));
-      });
-
-      // Configurar legendas no estado
-      setSubtitles([
-        { id: 'off', label: 'Desativado' },
-        ...subtitleTracks.map((track, index) => ({
-          id: index.toString(),
-          label: track.label
-        }))
-      ]);
-
-      // Carregar última legenda selecionada ou ativar português por padrão
-      const savedSubtitle = localStorage.getItem(`videoSubtitle_${videoId}`);
-      setTimeout(() => {
-        if (savedSubtitle) {
-          setVideoSubtitle(savedSubtitle);
-        } else {
-          setVideoSubtitle('0'); // Português
-        }
-      }, 1000); // Aumentei o tempo para garantir que as legendas estejam carregadas
-
-      // Monitorar erros
-      hls.on(Hls.Events.ERROR, (_event, data) => {
-        console.error('Erro:', data);
-      });
-
-      return () => {
-        if (hlsRef.current) {
-          hlsRef.current.destroy();
-        }
-      };
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = `https://vz-5534a473-9fc.b-cdn.net/${videoId}/playlist.m3u8`;
+      window.chrome.cast.initialize(
+        apiConfig,
+        () => {
+          console.log('Chromecast inicializado com sucesso');
+          setCastInitialized(true);
+        },
+        (error: Error) => console.error('Erro ao inicializar Chromecast:', error)
+      );
+    } catch (error) {
+      console.error('Erro ao configurar Chromecast:', error);
     }
-  }, [videoId]);
+  }, []);
 
-  // Inicializar o Chromecast
   useEffect(() => {
     if (typeof window !== 'undefined' && window.chrome?.cast?.isAvailable) {
       initializeCastApi();
@@ -387,39 +243,7 @@ export function useVideoPlayer(videoId: string) {
     return () => {
       window.__onGCastApiAvailable = undefined;
     };
-  }, []);
-
-  const initializeCastApi = () => {
-    try {
-      const sessionRequest = new window.chrome.cast.SessionRequest(
-        window.chrome.cast.media.DEFAULT_MEDIA_RECEIVER_APP_ID
-      );
-
-      const apiConfig = new window.chrome.cast.ApiConfig(
-        sessionRequest,
-        (session) => {
-          console.log('Sessão existente encontrada');
-          castSessionRef.current = session;
-          setIsCasting(true);
-        },
-        (availability) => {
-          console.log('Receiver found?', availability === 'available');
-        },
-        'ORIGIN_SCOPED'
-      );
-
-      window.chrome.cast.initialize(
-        apiConfig,
-        () => {
-          console.log('Chromecast inicializado com sucesso');
-          setCastInitialized(true);
-        },
-        (error) => console.error('Erro ao inicializar Chromecast:', error)
-      );
-    } catch (error) {
-      console.error('Erro ao configurar Chromecast:', error);
-    }
-  };
+  }, [initializeCastApi]);
 
   const toggleCast = async () => {
     if (!castInitialized) {
