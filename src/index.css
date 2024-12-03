@@ -204,28 +204,124 @@
   }
 }
 
-/* Estilo das legendas */
-::cue {
-  background-color: rgba(30, 255, 178, 0.2);
-  color: #ffffff;
-  font-family: system-ui, -apple-system, sans-serif;
-  font-size: 24px;
-  line-height: 1.5;
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
-  padding: 4px 8px;
-  white-space: pre-line;
-  font-weight: 500;
-}
-
+/* Estilo para as legendas */
 video::cue {
-  background-color: rgba(30, 255, 178, 0.2);
-  color: #ffffff;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 0.2em 0.5em;
+  margin: 10px;
+  line-height: 1.5;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-size: 1.2em;
+  border-radius: 4px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-video::-webkit-media-text-track-display {
-  font-family: system-ui, -apple-system, sans-serif;
+/* Estilo para o container das legendas */
+video::-webkit-media-text-track-container {
+  position: absolute;
+  bottom: 12% !important;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  min-height: 100px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Estilo das legendas */
+video::cue {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-size: 24px;
-  line-height: 1.5;
-  font-weight: 500;
-  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
+  font-weight: 600;
+  line-height: 1.4;
+  background: rgba(0, 0, 0, 0.85);
+  color: #ffffff;
+  padding: 14px 40px;
+  margin: 4px 0;
+  border-radius: 12px;
+  max-width: 85%;
+  text-align: center;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  display: inline-block;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Esconder legendas quando desativadas */
+video::-webkit-media-text-track-display-backdrop,
+video[data-captions-disabled="true"]::-webkit-media-text-track-container,
+video[data-captions-disabled="true"]::cue {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+}
+
+/* Garantir que as legendas não sejam cortadas */
+video::cue:first-child {
+  margin-top: 8px;
+}
+
+video::cue:last-child {
+  margin-bottom: 8px;
+}
+
+/* Estilo para o container das legendas em fullscreen */
+video:fullscreen::-webkit-media-text-track-container {
+  bottom: 10% !important;
+  padding: 0 120px;
+}
+
+/* Estilo para as legendas em tela cheia */
+video:fullscreen::cue {
+  font-size: 1.2em;
+  padding: 10px 24px;
+  max-width: 60%;
+}
+
+/* Suporte para Firefox */
+@supports (-moz-appearance: none) {
+  .video-container video::cue {
+    background-color: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(12px);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 1em;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+    padding: 8px 16px;
+    max-width: 50%;
+    text-align: center;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    word-break: normal;
+    hyphens: none;
+  }
+}
+
+/* Media Query para telas menores */
+@media screen and (max-width: 768px) {
+  video::cue {
+    max-width: 80%;
+    font-size: 0.9em;
+    padding: 6px 12px;
+  }
+  
+  video::-webkit-media-text-track-container {
+    padding: 0 40px;
+    bottom: 6% !important;
+  }
+}
+
+/* Menu de configurações */
+.absolute.right-12.bottom-20.w-48.bg-black\/90.backdrop-blur-sm.rounded-lg.p-2 {
+  z-index: 9999 !important;
+  position: absolute !important;
+  bottom: 80px !important;
+  right: 48px !important;
 }

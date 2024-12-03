@@ -31,10 +31,14 @@ export function VideoSettings({
   if (!isOpen) return null;
 
   const speeds = [
+    { label: '0.25x', value: 0.25 },
     { label: '0.5x', value: 0.5 },
+    { label: '0.75x', value: 0.75 },
     { label: 'Normal', value: 1 },
+    { label: '1.25x', value: 1.25 },
     { label: '1.5x', value: 1.5 },
-    { label: '2x', value: 2 },
+    { label: '1.75x', value: 1.75 },
+    { label: '2x', value: 2 }
   ];
 
   const getQualityLabel = (height: number) => {
@@ -47,10 +51,12 @@ export function VideoSettings({
 
   const qualities = [
     { label: 'Automático', value: -1 },
-    ...availableQualities.map((q, index) => ({
-      label: getQualityLabel(q.height),
-      value: index
-    }))
+    ...availableQualities
+      .sort((a, b) => b.height - a.height)
+      .map((q, index) => ({
+        label: getQualityLabel(q.height),
+        value: index
+      }))
   ];
 
   const getCurrentQualityLabel = () => {
@@ -79,15 +85,17 @@ export function VideoSettings({
         <span>Velocidade</span>
         <span className="text-white/60">{getCurrentSpeedLabel()}</span>
       </button>
-      <button
-        className="w-full px-3 py-2 text-sm text-white text-left hover:bg-[#1effb2]/10 hover:text-[#1effb2] rounded transition flex items-center justify-between"
-        onClick={() => setCurrentMenu('subtitles')}
-      >
-        <span>Legendas</span>
-        <span className="text-white/60">
-          {subtitles.find(s => s.id === currentSubtitle)?.label || 'Desativado'}
-        </span>
-      </button>
+      {subtitles.length > 1 && (
+        <button
+          className="w-full px-3 py-2 text-sm text-white text-left hover:bg-[#1effb2]/10 hover:text-[#1effb2] rounded transition flex items-center justify-between"
+          onClick={() => setCurrentMenu('subtitles')}
+        >
+          <span>Legendas</span>
+          <span className="text-white/60">
+            {subtitles.find(s => s.id === currentSubtitle)?.label || 'Desativado'}
+          </span>
+        </button>
+      )}
     </div>
   );
 
@@ -101,23 +109,28 @@ export function VideoSettings({
         <span>Qualidade</span>
       </button>
       <div className="mt-1 space-y-0.5">
-        {qualities.map((q) => (
-          <button
-            key={q.value}
-            className={`w-full px-3 py-1.5 text-sm text-left rounded transition ${
-              (q.value === -1 && quality === 'auto') || 
-              (q.value !== -1 && quality === `${availableQualities[q.value].height}p`)
-                ? 'text-[#1effb2] bg-[#1effb2]/10'
-                : 'text-white hover:bg-[#1effb2]/10 hover:text-[#1effb2]'
-            }`}
-            onClick={() => {
-              onQualityChange(q.value);
-              setCurrentMenu('main');
-            }}
-          >
-            {q.label}
-          </button>
-        ))}
+        {qualities.map((q) => {
+          const isAuto = q.value === -1;
+          const currentHeight = isAuto ? 'auto' : availableQualities[q.value]?.height;
+          const isActive = isAuto ? quality === 'auto' : quality === `${currentHeight}p`;
+          
+          return (
+            <button
+              key={q.value}
+              className={`w-full px-3 py-1.5 text-sm text-left rounded transition ${
+                isActive
+                  ? 'text-[#1effb2] bg-[#1effb2]/10'
+                  : 'text-white hover:bg-[#1effb2]/10 hover:text-[#1effb2]'
+              }`}
+              onClick={() => {
+                onQualityChange(q.value);
+                setCurrentMenu('main');
+              }}
+            >
+              {q.label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

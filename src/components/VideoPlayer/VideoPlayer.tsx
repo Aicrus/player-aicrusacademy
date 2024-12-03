@@ -16,15 +16,42 @@ export function VideoPlayer({ videoId }: VideoPlayerProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Carregar legenda automaticamente
+    // Verificar e carregar legenda se existir
     if (player.videoRef.current) {
-      const track = document.createElement('track');
-      track.kind = 'subtitles';
-      track.label = 'Português';
-      track.srclang = 'pt';
-      track.src = `${window.location.origin}/player-aicrusacademy/subtitles/${videoId}/pt.vtt`;
-      track.default = true;
-      player.videoRef.current.appendChild(track);
+      const subtitleUrl = `${window.location.origin}/player-aicrusacademy/subtitles/${videoId}/pt.vtt`;
+      
+      // Verificar se a legenda existe
+      fetch(subtitleUrl)
+        .then(response => {
+          if (response.ok) {
+            // Legenda existe, adicionar ao player
+            const track = document.createElement('track');
+            track.kind = 'subtitles';
+            track.label = 'Português';
+            track.srclang = 'pt';
+            track.src = subtitleUrl;
+            player.videoRef.current?.appendChild(track);
+
+            // Atualizar a lista de legendas disponíveis
+            player.updateSubtitles([
+              { id: 'off', label: 'Desativado' },
+              { id: '0', label: 'Português' }
+            ]);
+
+            // Garantir que a legenda comece desativada
+            track.addEventListener('load', () => {
+              if (player.videoRef.current?.textTracks[0]) {
+                player.videoRef.current.textTracks[0].mode = 'disabled';
+              }
+            });
+          }
+        })
+        .catch(() => {
+          // Se a legenda não existir, manter apenas a opção "Desativado"
+          player.updateSubtitles([
+            { id: 'off', label: 'Desativado' }
+          ]);
+        });
     }
   }, [videoId, player.videoRef]);
 
@@ -40,6 +67,18 @@ export function VideoPlayer({ videoId }: VideoPlayerProps) {
   };
 
   const handlePlayerClick = (e: React.MouseEvent) => {
+    // Fecha o menu de configurações se estiver aberto
+    if (isSettingsOpen) {
+      setIsSettingsOpen(false);
+    }
+
+    // Se estiver em modo PiP, sai do modo PiP
+    if (document.pictureInPictureElement) {
+      document.exitPictureInPicture();
+      return;
+    }
+    
+    // Se não estiver em modo PiP, comportamento normal de play/pause
     if (!(e.target as HTMLElement).closest('.video-controls')) {
       player.togglePlay();
     }
@@ -56,7 +95,7 @@ export function VideoPlayer({ videoId }: VideoPlayerProps) {
     setShowContextMenu(false);
   };
 
-  const thumbnailsUrl = `https://vz-5534a473-9fc.b-cdn.net/${videoId}/thumbnails.vtt`;
+  const thumbnailsUrl = `https://vz-5534a473-9fc.b-cdn.net/${videoId}/preview/thumbnails.vtt`;
 
   return (
     <div 
@@ -108,7 +147,9 @@ export function VideoPlayer({ videoId }: VideoPlayerProps) {
               isCasting={player.isCasting}
               quality={player.quality}
               currentSubtitle={player.currentSubtitle}
-              subtitles={player.subtitles}
+              onSubtitleChange={player.setVideoSubtitle}
+              lastSelectedSubtitle={player.lastSelectedSubtitle}
+              videoId={videoId}
             />
           </div>
         </>

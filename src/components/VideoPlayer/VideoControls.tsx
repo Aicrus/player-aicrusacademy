@@ -6,11 +6,11 @@ import {
   VolumeX,
   Maximize2,
   Settings,
-  Subtitles,
   PictureInPicture2,
   Cast,
   RotateCcw,
   RotateCw,
+  MessageSquare,
 } from 'lucide-react';
 
 interface VideoControlsProps {
@@ -32,7 +32,9 @@ interface VideoControlsProps {
   isCasting: boolean;
   quality: string;
   currentSubtitle: string;
-  subtitles: Array<{ id: string; label: string }>;
+  onSubtitleChange: (subtitleId: string) => void;
+  lastSelectedSubtitle: string;
+  videoId: string;
 }
 
 interface PreviewPosition {
@@ -46,7 +48,7 @@ const buttonClass = "p-2 rounded-full transition-all duration-200 transform hove
 
 // Para botões que podem ter estado ativo (como o Chromecast)
 const activeButtonClass = (isActive: boolean) => 
-  `${buttonClass} ${isActive ? 'text-[#1effb2]' : 'text-white hover:text-[#1effb2]'}`;
+  `p-2 rounded-full transition-all duration-200 transform hover:scale-110 ${isActive ? 'text-[#1effb2]' : 'text-white hover:text-[#1effb2]'}`;
 
 // Adicione esta função auxiliar no início do componente
 const getQualityBadge = (quality: string) => {
@@ -92,7 +94,9 @@ export function VideoControls({
   isCasting,
   quality,
   currentSubtitle,
-  subtitles,
+  onSubtitleChange,
+  lastSelectedSubtitle,
+  videoId,
 }: VideoControlsProps) {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -180,30 +184,47 @@ export function VideoControls({
   }, [onVolumeChange, onSeek, duration]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (progressBarRef.current) {
+    if (progressBarRef.current && thumbnailsUrl) {
       const rect = progressBarRef.current.getBoundingClientRect();
       const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
       const percentage = x / rect.width;
       const time = percentage * duration;
       
-      const thumbnailsPerRow = 5;
-      const thumbnailWidth = 160;
-      const thumbnailHeight = 90;
-      
-      const thumbnailIndex = Math.floor((time / duration) * 100);
-      const row = Math.floor(thumbnailIndex / thumbnailsPerRow);
-      const col = thumbnailIndex % thumbnailsPerRow;
-      
       setPreviewPosition({
-        x: Math.max(0, Math.min(x - thumbnailWidth/2, rect.width - thumbnailWidth)),
+        x: Math.max(0, Math.min(x - 80, rect.width - 160)),
         time,
-        backgroundPosition: `-${col * thumbnailWidth}px -${row * thumbnailHeight}px`
+        backgroundPosition: '0 0'
       });
     }
   };
 
+  // Adicionar useEffect para carregar o arquivo VTT
+  useEffect(() => {
+    if (!thumbnailsUrl) return;
+
+    let isMounted = true;
+
+    fetch(thumbnailsUrl)
+      .then(response => response.text())
+      .then(vtt => {
+        if (!isMounted) return;
+        console.log('VTT carregado:', vtt); // Debug
+      })
+      .catch(error => {
+        console.error('Erro ao carregar thumbnails:', error);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [thumbnailsUrl]);
+
   return (
-    <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+    <div 
+      className={`absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 to-transparent transition-opacity duration-300 ${
+        isPlaying ? 'opacity-0 group-hover:opacity-100' : 'opacity-100'
+      }`}
+    >
       <div 
         ref={progressBarRef}
         className="video-progress-bar mb-4 relative"
@@ -231,11 +252,18 @@ export function VideoControls({
               height: '90px'
             }}
           >
-            <div
-              className="w-full h-full bg-cover"
-              style={{
-                backgroundImage: `url(${thumbnailsUrl})`,
-                backgroundPosition: previewPosition.backgroundPosition
+            <img 
+              src={`https://iframe.mediadelivery.net/thumbnail/5534a473-9fc/${videoId}?time=${Math.floor(previewPosition.time)}`}
+              className="w-full h-full object-cover"
+              crossOrigin="anonymous"
+              loading="eager"
+              onLoad={(e) => {
+                console.log('Imagem carregada:', e.currentTarget.src);
+                e.currentTarget.style.display = 'block';
+              }}
+              onError={(e) => {
+                console.log('Erro ao carregar imagem:', e.currentTarget.src);
+                e.currentTarget.style.display = 'none';
               }}
             />
             <div className="absolute bottom-0 left-0 right-0 text-center text-xs text-white bg-black/60 py-1">
@@ -326,16 +354,24 @@ export function VideoControls({
         </div>
 
         <div className="flex items-center gap-2">
-          <button 
-            className={activeButtonClass(currentSubtitle !== 'off')}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onToggleSettings(e);
-            }}
-          >
-            <Subtitles className="w-5 h-5" />
-          </button>
+          {lastSelectedSubtitle !== 'off' && (
+            <button 
+              className={`p-2 rounded-full transition-all duration-200 transform hover:scale-110 ${
+                currentSubtitle !== 'off' ? 'text-[#1effb2]' : 'text-white hover:text-[#1effb2]'
+              }`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (currentSubtitle === 'off') {
+                  onSubtitleChange(lastSelectedSubtitle);
+                } else {
+                  onSubtitleChange('off');
+                }
+              }}
+            >
+              <MessageSquare className="w-5 h-5" />
+            </button>
+          )}
           <button className={activeButtonClass(isCasting)} onClick={onToggleCast}>
             <Cast className="w-5 h-5" />
           </button>

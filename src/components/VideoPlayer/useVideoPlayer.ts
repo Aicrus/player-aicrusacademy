@@ -26,15 +26,18 @@ export function useVideoPlayer(videoId: string) {
     const savedQuality = localStorage.getItem(`videoQuality_${videoId}`);
     return savedQuality || 'auto';
   });
-  const [availableQualities] = useState<QualityLevel[]>([]);
+  const [availableQualities, setAvailableQualities] = useState<QualityLevel[]>([]);
   const [playbackSpeed, setPlaybackSpeed] = useState(() => {
     const savedSpeed = localStorage.getItem(`videoSpeed_${videoId}`);
     return savedSpeed ? parseFloat(savedSpeed) : 1;
   });
-  const [subtitles] = useState<Array<{ id: string; label: string }>>([
+  const [subtitles, setSubtitles] = useState<Array<{ id: string; label: string }>>([
     { id: 'off', label: 'Desativado' }
   ]);
-  const [currentSubtitle, setCurrentSubtitle] = useState('off');
+  const [currentSubtitle, setCurrentSubtitle] = useState(() => {
+    return 'off';
+  });
+  const [lastSelectedSubtitle, setLastSelectedSubtitle] = useState('off');
   const [isCasting, setIsCasting] = useState(false);
   const [castInitialized, setCastInitialized] = useState(false);
 
@@ -135,6 +138,15 @@ export function useVideoPlayer(videoId: string) {
       if (document.pictureInPictureElement) {
         await document.exitPictureInPicture();
       } else {
+        // Primeiro desativa as legendas
+        if (currentSubtitle !== 'off') {
+          const tracks = videoRef.current.textTracks;
+          Array.from(tracks).forEach(track => {
+            track.mode = 'disabled';
+          });
+          setCurrentSubtitle('off');
+        }
+        // Depois entra no modo PiP
         await videoRef.current.requestPictureInPicture();
       }
     } catch (error) {
@@ -163,15 +175,6 @@ export function useVideoPlayer(videoId: string) {
     const video = videoRef.current;
     if (!video) return;
 
-    console.log('=== Alterando Legenda ===');
-    console.log('ID:', subtitleId);
-    console.log('Tracks disponíveis:', Array.from(video.textTracks).map(track => ({
-      label: track.label,
-      mode: track.mode,
-      kind: track.kind,
-      language: track.language
-    })));
-
     // Primeiro, desativar todas as legendas
     Array.from(video.textTracks).forEach(track => {
       track.mode = 'disabled';
@@ -182,15 +185,10 @@ export function useVideoPlayer(videoId: string) {
     } else {
       const trackIndex = parseInt(subtitleId);
       if (!isNaN(trackIndex) && video.textTracks[trackIndex]) {
-        const track = video.textTracks[trackIndex];
-        track.mode = 'showing';
-        console.log('Legenda ativada:', {
-          label: track.label,
-          mode: track.mode,
-          kind: track.kind,
-          language: track.language
-        });
+        // Ativa a legenda imediatamente
+        video.textTracks[trackIndex].mode = 'showing';
         setCurrentSubtitle(subtitleId);
+        setLastSelectedSubtitle(subtitleId);
       }
     }
 
@@ -313,57 +311,100 @@ export function useVideoPlayer(videoId: string) {
 
   // Carregar o tempo salvo
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
+    const loadVideo = async () => {
+      if (!videoRef.current) return;
 
-    const loadSavedTime = () => {
-      const savedTime = localStorage.getItem(`videoTime_${videoId}`);
-      console.log('Tentando carregar tempo salvo:', savedTime);
-      if (savedTime) {
-        const time = parseFloat(savedTime);
-        video.currentTime = time;
-        setCurrentTime(time);
-        console.log('Tempo carregado com sucesso:', time);
+      try {
+        const hls = new Hls({
+          maxMaxBufferLength: 60,
+          backBufferLength: 60,
+        });
+
+        hlsRef.current = hls;
+
+        hls.loadSource(`https://vz-5534a473-9fc.b-cdn.net/${videoId}/playlist.m3u8`);
+        hls.attachMedia(videoRef.current);
+
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          // Atualizar lista de qualidades disponíveis
+          if (hls.levels.length > 0) {
+            setAvailableQualities(hls.levels);
+          }
+
+          // Carregar qualidade salva
+          const savedQuality = localStorage.getItem(`videoQuality_${videoId}`);
+          if (savedQuality) {
+            if (savedQuality === 'auto') {
+              hls.currentLevel = -1;
+              setQuality('auto');
+            } else {
+              const height = parseInt(savedQuality);
+              const levelIndex = hls.levels.findIndex(level => level.height === height);
+              if (levelIndex !== -1) {
+                hls.currentLevel = levelIndex;
+                setQuality(`${height}p`);
+              }
+            }
+          }
+          
+          // Carregar velocidade salva
+          const savedSpeed = localStorage.getItem(`videoSpeed_${videoId}`);
+          if (savedSpeed && videoRef.current) {
+            const speed = parseFloat(savedSpeed);
+            videoRef.current.playbackRate = speed;
+            setPlaybackSpeed(speed);
+          }
+
+          // Carregar tempo salvo
+          const savedTime = localStorage.getItem(`videoTime_${videoId}`);
+          if (savedTime && videoRef.current) {
+            const time = parseFloat(savedTime);
+            videoRef.current.currentTime = time;
+            setCurrentTime(time);
+          }
+        });
+
+        hls.on(Hls.Events.LEVEL_SWITCHED, (_, data) => {
+          const newQuality = data.level === -1 ? 'auto' : `${hls.levels[data.level].height}p`;
+          setQuality(newQuality);
+          localStorage.setItem(`videoQuality_${videoId}`, newQuality);
+        });
+
+      } catch (error) {
+        console.error('Erro ao carregar vídeo:', error);
       }
     };
 
-    if (Hls.isSupported()) {
-      const videoUrl = `https://vz-5534a473-9fc.b-cdn.net/${videoId}/playlist.m3u8`;
-      
-      const hls = new Hls({
-        debug: false,
-        enableWebVTT: true,
-        enableCEA708Captions: true,
-        autoStartLoad: true,
-        xhrSetup: (xhr) => {
-          xhr.withCredentials = false;
-        }
-      });
+    loadVideo();
 
-      hlsRef.current = hls;
-      
-      hls.loadSource(videoUrl);
-      hls.attachMedia(video);
-
-      // Carregar o tempo salvo quando o manifesto for analisado
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        setTimeout(loadSavedTime, 500);
-      });
-
-      return () => {
-        if (hlsRef.current) {
-          hlsRef.current.destroy();
-        }
-      };
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = `https://vz-5534a473-9fc.b-cdn.net/${videoId}/playlist.m3u8`;
-      video.addEventListener('loadedmetadata', loadSavedTime);
-      
-      return () => {
-        video.removeEventListener('loadedmetadata', loadSavedTime);
-      };
-    }
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+      }
+    };
   }, [videoId]);
+
+  const updateSubtitles = (newSubtitles: Array<{ id: string; label: string }>) => {
+    setSubtitles(newSubtitles);
+  };
+
+  // Adicionar useEffect para monitorar eventos de PiP
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleEnterPiP = () => {
+      if (currentSubtitle !== 'off') {
+        setVideoSubtitle('off');
+      }
+    };
+
+    video.addEventListener('enterpictureinpicture', handleEnterPiP);
+
+    return () => {
+      video.removeEventListener('enterpictureinpicture', handleEnterPiP);
+    };
+  }, [currentSubtitle, setVideoSubtitle]);
 
   return {
     videoRef,
@@ -378,6 +419,7 @@ export function useVideoPlayer(videoId: string) {
     availableQualities,
     subtitles,
     currentSubtitle,
+    lastSelectedSubtitle,
     isCasting,
     togglePlay,
     seek,
@@ -391,6 +433,7 @@ export function useVideoPlayer(videoId: string) {
     setVideoQuality,
     setVideoPlaybackSpeed,
     setVideoSubtitle,
-    toggleCast
+    toggleCast,
+    updateSubtitles
   };
 }
