@@ -25,8 +25,12 @@ jobs:
     - name: Build
       run: npm run build
       
+    - name: Create .nojekyll
+      run: touch dist/.nojekyll
+      
     - name: Deploy
       uses: JamesIves/github-pages-deploy-action@v4
       with:
         folder: dist
         branch: gh-pages
+        clean: true
